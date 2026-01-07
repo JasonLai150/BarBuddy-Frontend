@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Eye, TrendingUp, Target, Upload, Loader2 } from "lucide-react";
+import barBuddyLogo from "@/assets/bar-buddy-logo.png";
 import { VideoUploadZone } from "@/components/VideoUploadZone";
 import { LiftTypeSelector, LiftType } from "@/components/LiftTypeSelector";
 import { ConfirmUploadDialog } from "@/components/ConfirmUploadDialog";
@@ -67,11 +68,21 @@ export default function HomePage() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6 md:py-10">
-        {/* Banner */}
-        <div className="mb-8 rounded-xl bg-gradient-to-r from-primary to-primary/80 px-6 py-8 text-center shadow-lg md:mb-12 md:py-10">
-          <h1 className="text-4xl font-extrabold tracking-tight text-primary-foreground md:text-5xl lg:text-6xl">
-            BAR BUDDY
+        {/* Hero Section */}
+        <div className="mb-8 flex flex-col items-center text-center md:mb-12">
+          <div className="mb-6 flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl bg-secondary shadow-lg md:h-32 md:w-32">
+            <img 
+              src={barBuddyLogo} 
+              alt="Bar Buddy Logo" 
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <h1 className="text-3xl font-bold text-foreground md:text-4xl lg:text-5xl">
+            Bar Buddy
           </h1>
+          <p className="mt-3 max-w-md text-muted-foreground md:text-lg">
+            AI-powered lift analysis with computer vision to perfect your form
+          </p>
         </div>
 
         {/* Stats Section */}
