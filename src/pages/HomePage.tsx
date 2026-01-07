@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Eye, TrendingUp, Target, Upload, Loader2 } from "lucide-react";
-import barBuddyLogo from "@/assets/bar-buddy-logo.png";
+
 import { VideoUploadZone } from "@/components/VideoUploadZone";
 import { LiftTypeSelector, LiftType } from "@/components/LiftTypeSelector";
 import { ConfirmUploadDialog } from "@/components/ConfirmUploadDialog";
@@ -67,29 +67,20 @@ export default function HomePage() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6 md:py-10">
-        {/* Hero Section */}
-        <div className="mb-8 flex flex-col items-center text-center md:mb-12">
-          <div className="mb-6 flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl bg-secondary shadow-lg md:h-32 md:w-32">
-            <img 
-              src={barBuddyLogo} 
-              alt="Bar Buddy Logo" 
-              className="h-full w-full object-cover"
-            />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground md:text-4xl lg:text-5xl">
-            Bar Buddy
-          </h1>
-          <p className="mt-3 max-w-md text-muted-foreground md:text-lg">
-            AI-powered lift analysis with computer vision to perfect your form
-          </p>
+      <div className="relative min-h-full">
+        {/* Background accents */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
+          <div className="absolute top-1/3 -left-32 h-48 w-48 rounded-full bg-accent/30 blur-3xl" />
+          <div className="absolute bottom-1/4 right-0 h-56 w-56 rounded-full bg-primary/15 blur-3xl" />
         </div>
-
-        {/* Stats Section */}
-        <div className="mb-8 lg:max-w-2xl lg:mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Your Stats</CardTitle>
+        
+        <div className="container relative mx-auto px-4 py-6 md:py-10">
+          {/* Stats Section */}
+          <div className="mb-8 lg:max-w-2xl lg:mx-auto">
+            <Card className="border-primary/20 bg-card/80 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="text-xl">Your Stats</CardTitle>
               <CardDescription>
                 Track your progress over time
               </CardDescription>
@@ -117,11 +108,11 @@ export default function HomePage() {
           </Card>
         </div>
 
-        {/* Upload Section */}
-        <div className="mb-8 lg:max-w-2xl lg:mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Upload Your Lift</CardTitle>
+          {/* Upload Section */}
+          <div className="mb-8 lg:max-w-2xl lg:mx-auto">
+            <Card className="border-primary/20 bg-card/80 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="text-xl">Upload Your Lift</CardTitle>
               <CardDescription>
                 Select a video and choose the lift type for AI analysis
               </CardDescription>
@@ -167,23 +158,24 @@ export default function HomePage() {
           </Card>
         </div>
 
-        {/* Quick Action */}
-        <div className="lg:max-w-2xl lg:mx-auto">
-          <Link to="/view" className="block">
-            <Card className="group cursor-pointer border-2 transition-all duration-200 hover:border-primary hover:shadow-lg">
-              <CardContent className="flex items-center gap-4 p-6">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                  <Eye className="h-7 w-7" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">View Results</h3>
-                  <p className="text-sm text-muted-foreground">
-                    See your analyzed lifts
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+          {/* Quick Action */}
+          <div className="lg:max-w-2xl lg:mx-auto">
+            <Link to="/view" className="block">
+              <Card className="group cursor-pointer border-2 border-primary/30 bg-card/80 backdrop-blur transition-all duration-200 hover:border-primary hover:shadow-lg">
+                <CardContent className="flex items-center gap-4 p-6">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/20 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <Eye className="h-7 w-7 text-primary group-hover:text-primary-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">View Results</h3>
+                    <p className="text-sm text-muted-foreground">
+                      See your analyzed lifts
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
         </div>
       </div>
 
