@@ -70,12 +70,14 @@ export default function HomePage() {
       <div className="relative min-h-full">
         {/* Background accents */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
           <div className="absolute top-1/3 -left-32 h-48 w-48 rounded-full bg-accent/30 blur-3xl" />
           <div className="absolute bottom-1/4 right-0 h-56 w-56 rounded-full bg-primary/15 blur-3xl" />
         </div>
         
         <div className="container relative mx-auto px-4 py-6 md:py-10">
+          {/* Title */}
+          <h1 className="mb-6 text-2xl font-medium text-foreground lg:max-w-2xl lg:mx-auto">Bar Buddy</h1>
+          
           {/* Stats Section */}
           <div className="mb-8 lg:max-w-2xl lg:mx-auto">
             <Card className="border-primary/20 bg-card/80 backdrop-blur">
