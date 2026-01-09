@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, View, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { StatsCard } from '@/components/home/stats-card';
@@ -7,6 +8,7 @@ import { LiftUploadCard } from '@/components/home/lift-upload-card';
 import { BarBuddyColors } from '@/constants/theme';
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const [selectedLiftType, setSelectedLiftType] = useState<string | null>(null);
 
   const handleLiftTypeSelect = (liftTypeId: string) => {
@@ -28,8 +30,13 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      {/* Header with title */}
-      <View style={styles.headerContainer}>
+      {/* Header with title - respects safe area */}
+      <View
+        style={[
+          styles.headerContainer,
+          { paddingTop: insets.top + 12 },
+        ]}
+      >
         <ThemedText type="title" style={styles.title}>
           Bar Buddy
         </ThemedText>
@@ -61,20 +68,20 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   headerContainer: {
-    backgroundColor: BarBuddyColors.dark,
+    backgroundColor: BarBuddyColors.cardBackground,
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: BarBuddyColors.gray,
+    borderBottomColor: BarBuddyColors.border,
   },
   title: {
-    color: '#FFFFFF',
+    color: BarBuddyColors.whiteText,
     fontSize: 28,
     fontWeight: 'bold',
   },
   contentScroll: {
     flex: 1,
+    backgroundColor: BarBuddyColors.dark,
   },
   contentContainer: {
     flexGrow: 1,

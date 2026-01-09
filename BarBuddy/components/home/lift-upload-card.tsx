@@ -99,14 +99,16 @@ export function LiftUploadCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: BarBuddyColors.dark,
+    backgroundColor: BarBuddyColors.cardBackground,
     borderRadius: 16,
     padding: 16,
     marginHorizontal: 16,
     marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: BarBuddyColors.border,
   },
   title: {
-    color: '#FFFFFF',
+    color: BarBuddyColors.whiteText,
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 4,
@@ -120,7 +122,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionLabel: {
-    color: '#FFFFFF',
+    color: BarBuddyColors.whiteText,
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 8,
@@ -128,18 +130,19 @@ const styles = StyleSheet.create({
   uploadDropzone: {
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#444751',
+    borderColor: BarBuddyColors.border,
     borderRadius: 12,
     paddingVertical: 24,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: BarBuddyColors.innerBackground,
   },
   uploadIconContainer: {
     marginBottom: 12,
   },
   uploadText: {
-    color: '#FFFFFF',
+    color: BarBuddyColors.whiteText,
     fontSize: 16,
     fontWeight: '500',
     marginBottom: 4,
@@ -160,24 +163,24 @@ const styles = StyleSheet.create({
   },
   liftTypeButton: {
     flex: 1,
-    backgroundColor: '#2A2D30',
+    backgroundColor: BarBuddyColors.innerBackground,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#444751',
+    borderColor: BarBuddyColors.border,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   liftTypeButtonSelected: {
     borderColor: BarBuddyColors.primary,
-    backgroundColor: '#1F2224',
+    backgroundColor: BarBuddyColors.deepBackground,
   },
   liftTypeEmoji: {
     fontSize: 24,
     marginBottom: 4,
   },
   liftTypeName: {
-    color: '#FFFFFF',
+    color: BarBuddyColors.whiteText,
     fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',
