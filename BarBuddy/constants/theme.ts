@@ -5,11 +5,19 @@
 
 import { Platform } from 'react-native';
 
-// Bar Buddy Color Palette
+// Bar Buddy Color Palette - Primary Colors
 const barBuddyPrimary = '#7ED9CF';
 const barBuddyDark = '#474A4D';
 const barBuddyGray = '#787C7F';
 const barBuddyLight = '#E5E7EB';
+
+// Bar Buddy Color Palette - UI Component Colors
+const barBuddyCardBackground = '#2A2D30';
+const barBuddyInnerBackground = '#1F2224';
+const barBuddyDeepBackground = '#0F1114';
+const barBuddyBorder = '#444751';
+const barBuddyInnerBorder = '#3A3D41';
+const barBuddyWhiteText = '#E5E7EB';
 
 export const Colors = {
   light: {
@@ -35,6 +43,12 @@ export const BarBuddyColors = {
   dark: barBuddyDark,
   gray: barBuddyGray,
   light: barBuddyLight,
+  cardBackground: barBuddyCardBackground,
+  innerBackground: barBuddyInnerBackground,
+  deepBackground: barBuddyDeepBackground,
+  border: barBuddyBorder,
+  innerBorder: barBuddyInnerBorder,
+  whiteText: barBuddyWhiteText,
 };
 
 export const Fonts = Platform.select({

@@ -44,14 +44,16 @@ export function StatsCard({ stats }: StatsCardProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: BarBuddyColors.dark,
+    backgroundColor: BarBuddyColors.cardBackground,
     borderRadius: 16,
     padding: 16,
     marginHorizontal: 16,
     marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: BarBuddyColors.border,
   },
   title: {
-    color: '#FFFFFF',
+    color: BarBuddyColors.whiteText,
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 4,
@@ -68,20 +70,22 @@ const styles = StyleSheet.create({
   },
   statItem: {
     flex: 1,
-    backgroundColor: '#2A2D30',
+    backgroundColor: BarBuddyColors.innerBackground,
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: BarBuddyColors.border,
   },
   iconContainer: {
     marginBottom: 8,
   },
   statValue: {
-    color: '#FFFFFF',
+    color: BarBuddyColors.whiteText,
     fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 4,
+    paddingVertical: 4,
   },
   statLabel: {
     color: BarBuddyColors.gray,
