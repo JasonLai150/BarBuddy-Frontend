@@ -1,4 +1,6 @@
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, View, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { BarBuddyColors } from '@/constants/theme';
@@ -13,6 +15,10 @@ interface LiftUploadCardProps {
   selectedLiftType: string | null;
   onLiftTypeSelect: (liftTypeId: string) => void;
   onUpload: () => void;
+  isUploading?: boolean;
+  uploadProgress?: number;
+  selectedFileName?: string | null;
+  onFileSelected?: (file: File | any) => void;
 }
 
 const LIFT_TYPES: LiftType[] = [
@@ -25,7 +31,56 @@ export function LiftUploadCard({
   selectedLiftType,
   onLiftTypeSelect,
   onUpload,
+  isUploading = false,
+  uploadProgress = 0,
+  selectedFileName = null,
+  onFileSelected,
 }: LiftUploadCardProps) {
+  const handleFileSelect = async () => {
+    try {
+      if (Platform.OS === 'web') {
+        // Web file selection using document API
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'video/*';
+        input.onchange = (event: any) => {
+          const file = event.target.files?.[0];
+          if (file && onFileSelected) {
+            onFileSelected(file);
+          }
+        };
+        input.click();
+      } else {
+        // Native platform file selection using expo-image-picker
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+          allowsEditing: false,
+          quality: 1,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          
+          // Convert native asset to a File-like object
+          if (asset.uri) {
+            // For native platforms, we'll pass the URI directly
+            // The upload service will handle conversion
+            const fileObject = {
+              uri: asset.uri,
+              name: asset.fileName || 'video.mp4',
+              type: asset.mimeType || 'video/mp4',
+            };
+            if (onFileSelected) {
+              onFileSelected(fileObject);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error selecting file:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ThemedText type="subtitle" style={styles.title}>
@@ -38,21 +93,49 @@ export function LiftUploadCard({
       <View style={styles.videoSection}>
         <ThemedText style={styles.sectionLabel}>Lift Video</ThemedText>
 
-        <View style={styles.uploadDropzone}>
-          <View style={styles.uploadIconContainer}>
-            <IconSymbol
-              name="arrow.up.doc"
-              size={40}
-              color={BarBuddyColors.primary}
-            />
-          </View>
-          <ThemedText style={styles.uploadText}>
-            Upload your lift video
-          </ThemedText>
-          <ThemedText style={styles.uploadSubtext}>
-            Drag and drop or tap to select
-          </ThemedText>
-        </View>
+        <TouchableOpacity
+          style={styles.uploadDropzone}
+          onPress={handleFileSelect}
+          disabled={isUploading}
+        >
+          {isUploading && uploadProgress > 0 && uploadProgress < 100 ? (
+            <>
+              <ActivityIndicator size="large" color={BarBuddyColors.primary} />
+              <ThemedText style={styles.uploadText}>
+                Uploading... {Math.round(uploadProgress)}%
+              </ThemedText>
+            </>
+          ) : (
+            <>
+              <View style={styles.uploadIconContainer}>
+                <IconSymbol
+                  name="arrow.up.doc"
+                  size={40}
+                  color={BarBuddyColors.primary}
+                />
+              </View>
+              {selectedFileName ? (
+                <>
+                  <ThemedText style={styles.uploadText}>
+                    {selectedFileName}
+                  </ThemedText>
+                  <ThemedText style={styles.uploadSubtext}>
+                    Tap to change video
+                  </ThemedText>
+                </>
+              ) : (
+                <>
+                  <ThemedText style={styles.uploadText}>
+                    Upload your lift video
+                  </ThemedText>
+                  <ThemedText style={styles.uploadSubtext}>
+                    Drag and drop or tap to select
+                  </ThemedText>
+                </>
+              )}
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
       <View style={styles.liftTypeSection}>
@@ -68,6 +151,7 @@ export function LiftUploadCard({
                   styles.liftTypeButtonSelected,
               ]}
               onPress={() => onLiftTypeSelect(liftType.id)}
+              disabled={isUploading}
             >
               <ThemedText style={styles.liftTypeEmoji}>
                 {liftType.emoji}
@@ -81,17 +165,29 @@ export function LiftUploadCard({
       </View>
 
       <TouchableOpacity
-        style={styles.uploadButton}
+        style={[styles.uploadButton, isUploading && styles.uploadButtonDisabled]}
         onPress={onUpload}
+        disabled={isUploading}
       >
-        <IconSymbol
-          name="arrow.up.doc"
-          size={20}
-          color={BarBuddyColors.dark}
-        />
-        <ThemedText style={styles.uploadButtonText}>
-          Upload for Analysis
-        </ThemedText>
+        {isUploading ? (
+          <>
+            <ActivityIndicator size="small" color={BarBuddyColors.dark} />
+            <ThemedText style={styles.uploadButtonText}>
+              Processing...
+            </ThemedText>
+          </>
+        ) : (
+          <>
+            <IconSymbol
+              name="arrow.up.doc"
+              size={20}
+              color={BarBuddyColors.dark}
+            />
+            <ThemedText style={styles.uploadButtonText}>
+              Upload for Analysis
+            </ThemedText>
+          </>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -193,6 +289,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+  },
+  uploadButtonDisabled: {
+    opacity: 0.6,
   },
   uploadButtonText: {
     color: BarBuddyColors.dark,

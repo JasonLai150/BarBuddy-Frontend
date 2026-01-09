@@ -1,26 +1,107 @@
 import { useState } from 'react';
-import { StyleSheet, View, ScrollView } from 'react-native';
+import { StyleSheet, View, ScrollView, Alert, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { StatsCard } from '@/components/home/stats-card';
 import { LiftUploadCard } from '@/components/home/lift-upload-card';
 import { BarBuddyColors } from '@/constants/theme';
+import { trimFilename } from '@/utils/file-utils';
+import {
+  requestUploadUrl,
+  uploadVideoFile,
+  createLiftJob,
+} from '@/services/upload-service';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [selectedLiftType, setSelectedLiftType] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<any>(null);
 
   const handleLiftTypeSelect = (liftTypeId: string) => {
     setSelectedLiftType(liftTypeId);
   };
 
-  const handleUpload = () => {
-    if (!selectedLiftType) {
-      alert('Please select a lift type first');
-      return;
+  const handleFileSelected = (file: any) => {
+    setSelectedFile(file);
+    // Extract filename from File object or native file object
+    const fileName = file.name || file.filename || 'video.mp4';
+    // Trim filename if it's too long to prevent layout overflow
+    const trimmedFileName = trimFilename(fileName, 30);
+    setSelectedFileName(trimmedFileName);
+  };
+
+  const handleUpload = async () => {
+    try {
+      // Validate inputs
+      if (!selectedLiftType) {
+        Alert.alert('Error', 'Please select a lift type first');
+        return;
+      }
+
+      if (!selectedFile) {
+        Alert.alert('Error', 'Please select a video file first');
+        return;
+      }
+
+      setIsUploading(true);
+      setUploadProgress(0);
+
+      // Step 1: Request upload URL from backend
+      console.log('Requesting upload URL...');
+      const { jobId, uploadUrl } = await requestUploadUrl('video/mp4');
+      console.log('Received jobId:', jobId);
+
+      // Step 2: Upload video file to S3
+      console.log('Uploading video file...');
+      
+      let videoBlob: Blob;
+      
+      if (Platform.OS === 'web') {
+        // Web: selectedFile is already a File object
+        videoBlob = new Blob([selectedFile], { type: 'video/mp4' });
+      } else {
+        // Native: need to fetch the video from URI
+        const response = await fetch(selectedFile.uri);
+        videoBlob = await response.blob();
+      }
+
+      await uploadVideoFile(uploadUrl, videoBlob, (progress) => {
+        setUploadProgress(progress);
+      });
+      console.log('Video uploaded successfully');
+
+      // Step 3: Create job to start analysis
+      console.log('Creating lift analysis job...');
+      const jobResponse = await createLiftJob(jobId, selectedLiftType);
+      console.log('Job created with status:', jobResponse.status);
+
+      // Reset state
+      setIsUploading(false);
+      setUploadProgress(0);
+      setSelectedFileName(null);
+      setSelectedFile(null);
+      setSelectedLiftType(null);
+
+      // Show success message
+      Alert.alert(
+        'Success',
+        `Your ${selectedLiftType} lift has been submitted for analysis. We will notify you when the analysis is complete.`
+      );
+
+      // TODO: Implement polling with getJobStatus(jobId) to check when analysis is complete
+    } catch (error) {
+      console.error('Upload error:', error);
+      setIsUploading(false);
+      setUploadProgress(0);
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'An error occurred during upload';
+      Alert.alert('Upload Failed', errorMessage);
     }
-    alert(`Uploading ${selectedLiftType} lift for analysis`);
   };
 
   const stats = [
@@ -56,6 +137,10 @@ export default function HomeScreen() {
           selectedLiftType={selectedLiftType}
           onLiftTypeSelect={handleLiftTypeSelect}
           onUpload={handleUpload}
+          isUploading={isUploading}
+          uploadProgress={uploadProgress}
+          selectedFileName={selectedFileName}
+          onFileSelected={handleFileSelected}
         />
       </ScrollView>
     </ThemedView>
