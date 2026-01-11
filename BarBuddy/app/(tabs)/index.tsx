@@ -11,7 +11,7 @@ import {
   requestUploadUrl,
   uploadVideoFile,
   createLiftJob,
-} from '@/services/upload-service';
+} from '@/services/api-service';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();

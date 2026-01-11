@@ -62,22 +62,22 @@ export default function ProfileScreen() {
           <>
             <View style={styles.tokenContainer}>
               <ThemedText style={styles.tokenLabel}>Access Token:</ThemedText>
-              <ThemedText style={styles.tokenValue}>
-                {tokens.accessToken ? `${tokens.accessToken.substring(0, 50)}...` : 'Not available'}
+              <ThemedText style={styles.tokenValue} selectable>
+                {tokens.accessToken || 'Not available'}
               </ThemedText>
             </View>
 
             <View style={styles.tokenContainer}>
               <ThemedText style={styles.tokenLabel}>ID Token:</ThemedText>
-              <ThemedText style={styles.tokenValue}>
-                {tokens.idToken ? `${tokens.idToken.substring(0, 50)}...` : 'Not available'}
+              <ThemedText style={styles.tokenValue} selectable>
+                {tokens.idToken || 'Not available'}
               </ThemedText>
             </View>
 
             <View style={styles.tokenContainer}>
               <ThemedText style={styles.tokenLabel}>Refresh Token:</ThemedText>
-              <ThemedText style={styles.tokenValue}>
-                {tokens.refreshToken ? `${tokens.refreshToken.substring(0, 50)}...` : 'Not available'}
+              <ThemedText style={styles.tokenValue} selectable>
+                {tokens.refreshToken || 'Not available'}
               </ThemedText>
             </View>
           </>
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   },
   tokenContainer: {
     marginBottom: 15,
-    padding: 10,
+    padding: 15,
     backgroundColor: BarBuddyColors.light,
     borderRadius: 8,
     borderWidth: 1,
@@ -137,9 +137,10 @@ const styles = StyleSheet.create({
     color: BarBuddyColors.dark,
   },
   tokenValue: {
-    fontSize: 14,
+    fontSize: 12,
     color: BarBuddyColors.gray,
     fontFamily: 'monospace',
+    lineHeight: 16,
   },
   loadingText: {
     fontSize: 16,

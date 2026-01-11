@@ -1,3 +1,4 @@
+import { getIdToken } from "@/services/cognito-auth";
 // Configuration for the API base URL
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -14,6 +15,17 @@ interface JobResponse {
   liftType?: string;
 }
 
+async function authFetch(path: string, init: RequestInit = {}) {
+  const token = await getIdToken();
+  if (!token) throw new Error("Not signed in");
+
+  const headers = new Headers(init.headers || {});
+  headers.set("Authorization", `Bearer ${token}`);
+
+  return fetch(`${API_BASE_URL}${path}`, { ...init, headers });
+}
+
+
 /**
  * Request a presigned upload URL from the backend
  * This initiates the upload process and returns a jobId and uploadUrl
@@ -22,11 +34,9 @@ export async function requestUploadUrl(
   contentType: string = 'video/mp4'
 ): Promise<UploadUrlResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/upload-url`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    const response = await authFetch("/upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contentType }),
     });
 
@@ -99,16 +109,12 @@ export async function createLiftJob(
   liftType: string
 ): Promise<JobResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/jobs`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        jobId,
-        liftType,
-      }),
+    const response = await authFetch("/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobId, liftType }),
     });
+
 
     if (!response.ok) {
       throw new Error(`Failed to create job: ${response.statusText}`);
@@ -132,12 +138,7 @@ export async function createLiftJob(
  */
 export async function getJobStatus(jobId: string): Promise<JobResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await authFetch(`/jobs/${jobId}`, { method: "GET" });
 
     if (!response.ok) {
       throw new Error(`Failed to get job status: ${response.statusText}`);
@@ -154,3 +155,23 @@ export async function getJobStatus(jobId: string): Promise<JobResponse> {
     throw error;
   }
 }
+
+export type JobResultsUrlName = "meta" | "landmarks" | "summary" | "viz";
+
+export interface JobResultsResponse {
+  jobId: string;
+  status: string;
+  urls: Array<{ name: JobResultsUrlName; key: string; url: string }>;
+}
+
+export async function getJobResults(jobId: string): Promise<JobResultsResponse> {
+  const response = await authFetch(`/jobs/${jobId}/results`, { method: "GET" });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Failed to get job results (${response.status}): ${text}`);
+  }
+
+  return response.json();
+}
+
