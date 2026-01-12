@@ -1,7 +1,9 @@
+
 import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BarBuddyColors } from '@/constants/theme';
+import { GallerySkeleton } from '@/components/gallery-skeleton';
 
 export default function ViewScreen() {
   return (
@@ -13,9 +15,7 @@ export default function ViewScreen() {
       </View>
       
       <View style={styles.contentContainer}>
-        <ThemedText style={styles.placeholderText}>
-          Your content goes here
-        </ThemedText>
+        <GallerySkeleton />
       </View>
     </ThemedView>
   );
