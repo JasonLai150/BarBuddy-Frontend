@@ -65,37 +65,33 @@ export async function uploadVideoFile(
   onProgress?: (progress: number) => void
 ): Promise<void> {
   try {
-    const xhr = new XMLHttpRequest();
+    console.log('[upload] Starting video upload to S3');
+    console.log('[upload] Upload URL:', uploadUrl.substring(0, 100) + '...');
+    console.log('[upload] Blob size:', videoBlob.size, 'bytes');
 
-    // Track upload progress
-    if (onProgress) {
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = (event.loaded / event.total) * 100;
-          onProgress(percentComplete);
-        }
-      });
+    // Use fetch API for better Expo compatibility
+    const response = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'video/mp4',
+      },
+      body: videoBlob,
+    });
+
+    console.log('[upload] Response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[upload] S3 error response:', errorText);
+      throw new Error(`Upload failed with status ${response.status}: ${errorText}`);
     }
 
-    return new Promise((resolve, reject) => {
-      xhr.addEventListener('load', () => {
-        if (xhr.status === 200) {
-          resolve();
-        } else {
-          reject(new Error(`Upload failed with status ${xhr.status}`));
-        }
-      });
-
-      xhr.addEventListener('error', () => {
-        reject(new Error('Network error during upload'));
-      });
-
-      xhr.open('PUT', uploadUrl);
-      xhr.setRequestHeader('Content-Type', 'video/mp4');
-      xhr.send(videoBlob);
-    });
+    console.log('[upload] Video uploaded successfully');
   } catch (error) {
-    console.error('Error uploading video:', error);
+    console.error('[upload] Error uploading video:', error);
+    if (error instanceof TypeError) {
+      console.error('[upload] Network error - check URL validity and network connection');
+    }
     throw error;
   }
 }

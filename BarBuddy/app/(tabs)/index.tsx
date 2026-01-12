@@ -58,20 +58,19 @@ export default function HomeScreen() {
       // Step 2: Upload video file to S3
       console.log('Uploading video file...');
       
-      let videoBlob: Blob;
-      
       if (Platform.OS === 'web') {
-        // Web: selectedFile is already a File object
-        videoBlob = new Blob([selectedFile], { type: 'video/mp4' });
+        // Web: selectedFile is already a File object, convert to Blob
+        const videoBlob = new Blob([selectedFile], { type: 'video/mp4' });
+        await uploadVideoFile(uploadUrl, videoBlob, (progress) => {
+          setUploadProgress(progress);
+        });
       } else {
-        // Native: need to fetch the video from URI
-        const response = await fetch(selectedFile.uri);
-        videoBlob = await response.blob();
+        // Native: pass file URI directly to use Expo FileSystem for native upload
+        // This avoids Blob conversion and prevents header injection issues
+        await uploadVideoFile(uploadUrl, selectedFile.uri, (progress) => {
+          setUploadProgress(progress);
+        });
       }
-
-      await uploadVideoFile(uploadUrl, videoBlob, (progress) => {
-        setUploadProgress(progress);
-      });
       console.log('Video uploaded successfully');
 
       // Step 3: Create job to start analysis
