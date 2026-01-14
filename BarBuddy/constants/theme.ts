@@ -49,6 +49,10 @@ export const BarBuddyColors = {
   border: barBuddyBorder,
   innerBorder: barBuddyInnerBorder,
   whiteText: barBuddyWhiteText,
+  textSecondary: barBuddyGray,
+  success: '#4ADE80',
+  warning: '#FBBF24',
+  error: '#F87171',
 };
 
 export const Fonts = Platform.select({

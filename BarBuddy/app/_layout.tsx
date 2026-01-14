@@ -5,6 +5,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { JobProvider } from '@/contexts/JobContext';
 
 function RootLayoutNav() {
   return (
@@ -23,7 +24,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthProvider>
-        <RootLayoutNav />
+        <JobProvider>
+          <RootLayoutNav />
+        </JobProvider>
       </AuthProvider>
       <StatusBar style="auto" />
     </ThemeProvider>

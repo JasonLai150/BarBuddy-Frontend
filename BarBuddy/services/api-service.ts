@@ -217,3 +217,34 @@ export async function getJobResults(jobId: string): Promise<JobResultsResponse> 
   return response.json();
 }
 
+/**
+ * LocalJob represents a lift analysis job stored locally on the device
+ * This allows us to track jobs across app sessions and display them in the gallery
+ */
+export interface LocalJobPreview {
+  thumbnailBase64?: string;  // Base64-encoded first frame from viz.mp4
+  durationSec?: number;      // Video duration in seconds
+  framesWithPose?: number;   // Number of frames with detected pose
+  error?: string;            // Error message if preview generation failed
+}
+
+export type LocalJobStatus = "CREATED" | "UPLOADED" | "PROCESSING" | "DONE" | "ERROR";
+
+export interface LocalJob {
+  jobId: string;
+  userId?: string;            // Optional user sub for debugging
+  liftType?: string;          // Type of lift (squat, bench, deadlift, etc.)
+  status: LocalJobStatus;
+  createdAt: string;          // ISO timestamp
+  updatedAt: string;          // ISO timestamp
+
+  // Stable S3 keys for result files (persist these, not the signed URLs)
+  resultMetaKey?: string;
+  resultLandmarksKey?: string;
+  resultSummaryKey?: string;
+  resultVizKey?: string;
+
+  // Preview data for gallery display
+  preview?: LocalJobPreview;
+}
+
