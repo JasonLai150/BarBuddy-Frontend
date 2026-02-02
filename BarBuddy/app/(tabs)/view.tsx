@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { JobDetailModal } from '@/components/JobDetailModal';
 import { BarBuddyColors } from '@/constants/theme';
 import { useJobs } from '@/contexts/JobContext';
 import { LocalJob, LocalJobStatus } from '@/services/api-service';
@@ -20,11 +21,26 @@ export default function ViewScreen() {
   const insets = useSafeAreaInsets();
   const { jobs, refreshJobs, isLoading } = useJobs();
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<LocalJob | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
     await refreshJobs();
     setRefreshing(false);
+  };
+
+  const handleJobPress = (job: LocalJob) => {
+    // Only open modal for completed jobs
+    if (job.status === 'DONE') {
+      setSelectedJob(job);
+      setModalVisible(true);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    setSelectedJob(null);
   };
 
   const getStatusColor = (status: LocalJobStatus) => {
@@ -73,16 +89,15 @@ export default function ViewScreen() {
 
   const renderJobCard = (job: LocalJob) => {
     const hasPreview = job.preview?.thumbnailBase64 && !job.preview?.error;
+    const isCompleted = job.status === 'DONE';
 
     return (
       <TouchableOpacity 
         key={job.jobId}
         style={styles.jobCard}
         activeOpacity={0.7}
-        onPress={() => {
-          // TODO: Navigate to job detail page
-          console.log('Navigate to job detail:', job.jobId);
-        }}
+        onPress={() => handleJobPress(job)}
+        disabled={!isCompleted}
       >
         {/* Preview Image or Placeholder */}
         <View style={styles.previewContainer}>
@@ -119,9 +134,18 @@ export default function ViewScreen() {
             <ThemedText style={styles.liftType}>
               {job.liftType || 'Unknown Lift'}
             </ThemedText>
-            <ThemedText style={styles.timestamp}>
-              {formatDate(job.createdAt)}
-            </ThemedText>
+            <View style={styles.timestampContainer}>
+              <ThemedText style={styles.timestamp}>
+                {formatDate(job.createdAt)}
+              </ThemedText>
+              {isCompleted && (
+                <IconSymbol 
+                  name="chevron.right" 
+                  size={16} 
+                  color={BarBuddyColors.primary} 
+                />
+              )}
+            </View>
           </View>
 
           {job.preview?.durationSec && (
@@ -193,6 +217,13 @@ export default function ViewScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Job Detail Modal */}
+      <JobDetailModal
+        visible={modalVisible}
+        job={selectedJob}
+        onClose={handleCloseModal}
+      />
     </ThemedView>
   );
 }
@@ -309,6 +340,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: BarBuddyColors.whiteText,
     textTransform: 'capitalize',
+  },
+  timestampContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   timestamp: {
     fontSize: 12,

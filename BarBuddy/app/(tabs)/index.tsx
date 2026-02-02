@@ -15,10 +15,12 @@ import {
   LocalJob,
 } from '@/services/api-service';
 import { useJobs } from '@/contexts/JobContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { addJob, updateJob, totalJobs, completedJobs } = useJobs();
+  const { userId } = useAuth();
   const [selectedLiftType, setSelectedLiftType] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -66,13 +68,14 @@ export default function HomeScreen() {
       // Create initial job entry with CREATED status
       const newJob: LocalJob = {
         jobId,
+        userId: userId ?? undefined,
         liftType: selectedLiftType,
         status: 'CREATED',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
       await addJob(newJob);
-      console.log('[Upload] Created job in local storage');
+      console.log('[Upload] Created job in local storage with userId:', userId);
 
       // Step 2: Upload video file to S3
       console.log('Uploading video file...');

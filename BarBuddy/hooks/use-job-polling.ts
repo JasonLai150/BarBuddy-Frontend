@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useJobs } from '@/contexts/JobContext';
 import { getJobStatus, getJobResults, LocalJob } from '@/services/api-service';
+import { generateVideoPreview } from '@/utils/video-utils';
 
 const POLLING_INTERVAL = 10000; // 10 seconds
 
@@ -10,11 +11,17 @@ const POLLING_INTERVAL = 10000; // 10 seconds
  * When a job completes, fetches results and generates preview
  */
 export function useJobPolling() {
-  const { jobs, updateJob } = useJobs();
+  const { jobs, isSyncing, updateJob } = useJobs();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const pollJobs = async () => {
+      // Skip polling if syncing with backend to avoid race conditions
+      if (isSyncing) {
+        console.log('[JobPolling] Skipping polling, backend sync in progress');
+        return;
+      }
+
       // Find jobs that need polling (not DONE or ERROR)
       const incompleteJobs = jobs.filter(
         (job) => job.status !== 'DONE' && job.status !== 'ERROR'
@@ -66,7 +73,7 @@ export function useJobPolling() {
         console.log('[JobPolling] Stopped polling interval');
       }
     };
-  }, [jobs, updateJob]);
+  }, [jobs, isSyncing, updateJob]);
 
   /**
    * Fetch job results and generate preview when job completes
@@ -105,9 +112,17 @@ export function useJobPolling() {
       // Generate preview in the background (non-blocking)
       const vizUrl = results.urls.find((u) => u.name === 'viz')?.url;
       if (vizUrl) {
-        console.log('[JobPolling] Preview generation will be implemented');
-        // TODO: Implement generateVideoPreview once video-utils is ready
-        // For now, just log that preview would be generated
+        console.log('[JobPolling] Found viz URL for job', jobId);
+        console.log('[JobPolling] Viz URL:', vizUrl.substring(0, 100) + '...');
+        console.log('[JobPolling] Starting preview generation...');
+        generateVideoPreview(vizUrl, jobId, updateJob).catch((error) => {
+          console.error('[JobPolling] Error generating preview:', error);
+          console.error('[JobPolling] Error stack:', error instanceof Error ? error.stack : 'No stack');
+          // Preview error is already stored in updateJob callback
+        });
+      } else {
+        console.warn('[JobPolling] No viz URL found in results for job', jobId);
+        console.log('[JobPolling] Available URLs:', results.urls.map(u => u.name).join(', '));
       }
     } catch (error) {
       console.error('[JobPolling] Error fetching results for job', jobId, ':', error);
