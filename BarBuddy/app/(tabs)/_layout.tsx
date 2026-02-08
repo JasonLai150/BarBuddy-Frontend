@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -11,8 +11,16 @@ import { useJobs } from '@/contexts/JobContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const { syncWithBackend } = useJobs();
+  const router = useRouter();
+
+  // Redirect to login when auth state becomes false (e.g. token refresh failed)
+  useEffect(() => {
+    if (!isLoading && isAuthenticated === false) {
+      router.replace('/login' as any);
+    }
+  }, [isAuthenticated, isLoading, router]);
   
   // Start background job polling
   useJobPolling();

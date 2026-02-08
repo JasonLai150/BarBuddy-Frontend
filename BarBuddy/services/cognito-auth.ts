@@ -34,7 +34,123 @@ const K_ACCESS = "access_token";
 const K_ID = "id_token";
 const K_REFRESH = "refresh_token";
 
+/** Buffer in seconds – refresh tokens before they actually expire */
+const EXPIRY_BUFFER_SECONDS = 60;
+
 export const issuer = `https://cognito-idp.${REGION}.amazonaws.com/${USER_POOL_ID}`;
+
+// ────────────────────────────────────────────
+// Token expiry helpers
+// ────────────────────────────────────────────
+
+/**
+ * Decode a JWT payload (base64url) without verifying the signature.
+ * Returns null if the token is malformed.
+ */
+function decodeJwtPayload(token: string): Record<string, any> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    // base64url → base64
+    let base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    while (base64.length % 4 !== 0) base64 += "=";
+    return JSON.parse(atob(base64));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Returns `true` when the access or ID token is expired (or will expire
+ * within `EXPIRY_BUFFER_SECONDS`).
+ */
+export function isTokenExpired(token: string): boolean {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) return true; // treat un-parseable tokens as expired
+  const nowSec = Math.floor(Date.now() / 1000);
+  return nowSec >= payload.exp - EXPIRY_BUFFER_SECONDS;
+}
+
+// ────────────────────────────────────────────
+// Token refresh
+// ────────────────────────────────────────────
+
+/**
+ * Use the stored refresh token to obtain new access + id tokens from
+ * Cognito's token endpoint.  Stores the new tokens and returns `true`
+ * on success, `false` if the refresh token is missing / expired / revoked.
+ */
+export async function refreshTokens(): Promise<boolean> {
+  try {
+    const refreshToken = await SecureStore.getItemAsync(K_REFRESH);
+    if (!refreshToken) {
+      console.log("[auth] No refresh token stored – cannot refresh");
+      return false;
+    }
+
+    console.log("[auth] Refreshing tokens…");
+
+    const body = new URLSearchParams({
+      grant_type: "refresh_token",
+      client_id: CLIENT_ID,
+      refresh_token: refreshToken,
+    }).toString();
+
+    const response = await fetch(discovery.tokenEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.warn("[auth] Token refresh failed:", response.status, errText);
+      return false;
+    }
+
+    const data = await response.json();
+
+    if (data.access_token) await SecureStore.setItemAsync(K_ACCESS, data.access_token);
+    if (data.id_token) await SecureStore.setItemAsync(K_ID, data.id_token);
+    // Cognito does NOT return a new refresh token on refresh_token grant –
+    // the original refresh token stays valid until it expires.
+
+    console.log("[auth] Tokens refreshed successfully");
+    return true;
+  } catch (error) {
+    console.error("[auth] Token refresh error:", error);
+    return false;
+  }
+}
+
+/**
+ * Returns a valid access token, refreshing first if expired.
+ * Returns `null` when no valid session exists.
+ */
+export async function getValidAccessToken(): Promise<string | null> {
+  let token = await SecureStore.getItemAsync(K_ACCESS);
+  if (token && !isTokenExpired(token)) return token;
+
+  // Try to refresh
+  const ok = await refreshTokens();
+  if (!ok) return null;
+
+  return SecureStore.getItemAsync(K_ACCESS);
+}
+
+/**
+ * Returns a valid ID token, refreshing first if expired.
+ * Returns `null` when no valid session exists.
+ */
+export async function getValidIdToken(): Promise<string | null> {
+  let token = await SecureStore.getItemAsync(K_ID);
+  if (token && !isTokenExpired(token)) return token;
+
+  const ok = await refreshTokens();
+  if (!ok) return null;
+
+  return SecureStore.getItemAsync(K_ID);
+}
 
 // Use deep link redirect (works in dev client / simulator)
 export function getRedirectUri(): string {
@@ -103,9 +219,31 @@ export async function signOutLocal() {
 
 /**
  * Ends the Cognito browser session too (recommended),
- * then clears local tokens.
+ * revokes the refresh token, then clears local tokens.
+ * This ensures the user must re-authenticate next time.
  */
 export async function signOutHostedUI() {
+  // 1. Revoke the refresh token so it can't be reused
+  try {
+    const refreshToken = await SecureStore.getItemAsync(K_REFRESH);
+    if (refreshToken) {
+      const body = new URLSearchParams({
+        token: refreshToken,
+        client_id: CLIENT_ID,
+      }).toString();
+
+      await fetch(discovery.revocationEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body,
+      });
+      console.log("[auth] Refresh token revoked");
+    }
+  } catch (e) {
+    console.warn("[auth] Failed to revoke refresh token:", e);
+  }
+
+  // 2. End the Cognito hosted-UI browser session
   const logoutUri = getRedirectUri();
 
   const logoutUrl =
@@ -115,5 +253,7 @@ export async function signOutHostedUI() {
 
   // openAuthSessionAsync will open Safari and return to the app
   await WebBrowser.openAuthSessionAsync(logoutUrl, logoutUri);
+
+  // 3. Clear all local tokens
   await signOutLocal();
 }
