@@ -217,3 +217,74 @@ export async function getJobResults(jobId: string): Promise<JobResultsResponse> 
   return response.json();
 }
 
+/**
+ * Fetch all jobs for the current user from the backend
+ * This is the source of truth for job history
+ * @returns Array of LocalJob objects transformed from backend schema
+ */
+export async function fetchUserJobs(): Promise<LocalJob[]> {
+  try {
+    const response = await authFetch('/jobs', { method: 'GET' });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch user jobs: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const backendJobs = data.jobs || [];
+
+    // Transform backend jobs to LocalJob format
+    const localJobs: LocalJob[] = backendJobs.map((job: any) => ({
+      jobId: job.jobId,
+      userId: job.userId,
+      liftType: job.liftType || undefined,
+      status: job.status as LocalJobStatus,
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt,
+      resultMetaKey: job.resultMetaKey || undefined,
+      resultLandmarksKey: job.resultLandmarksKey || undefined,
+      resultSummaryKey: job.resultSummaryKey || undefined,
+      resultVizKey: job.resultVizKey || undefined,
+      // Preview data will be populated from local storage or generated later
+      preview: undefined,
+    }));
+
+    console.log('[API] Fetched', localJobs.length, 'jobs from backend');
+    return localJobs;
+  } catch (error) {
+    console.error('[API] Error fetching user jobs:', error);
+    throw error;
+  }
+}
+
+/**
+ * LocalJob represents a lift analysis job stored locally on the device
+ * This allows us to track jobs across app sessions and display them in the gallery
+ */
+export interface LocalJobPreview {
+  thumbnailBase64?: string;  // Base64-encoded first frame from viz.mp4
+  durationSec?: number;      // Video duration in seconds
+  framesWithPose?: number;   // Number of frames with detected pose
+  error?: string;            // Error message if preview generation failed
+}
+
+export type LocalJobStatus = "CREATED" | "UPLOADED" | "PROCESSING" | "DONE" | "ERROR";
+
+export interface LocalJob {
+  jobId: string;
+  userId?: string;            // Optional user sub for debugging
+  liftType?: string;          // Type of lift (squat, bench, deadlift, etc.)
+  status: LocalJobStatus;
+  createdAt: string;          // ISO timestamp
+  updatedAt: string;          // ISO timestamp
+
+  // Stable S3 keys for result files (persist these, not the signed URLs)
+  resultMetaKey?: string;
+  resultLandmarksKey?: string;
+  resultSummaryKey?: string;
+  resultVizKey?: string;
+
+  // Preview data for gallery display
+  preview?: LocalJobPreview;
+}
+
