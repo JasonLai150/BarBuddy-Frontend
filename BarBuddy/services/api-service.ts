@@ -1,4 +1,4 @@
-import { getIdToken } from "@/services/cognito-auth";
+import { getValidIdToken } from "@/services/cognito-auth";
 import { File } from "expo-file-system";
 import { Platform } from "react-native";
 
@@ -19,7 +19,7 @@ interface JobResponse {
 }
 
 async function authFetch(path: string, init: RequestInit = {}) {
-  const token = await getIdToken();
+  const token = await getValidIdToken();
   if (!token) throw new Error("Not signed in");
 
   const headers = new Headers(init.headers || {});
