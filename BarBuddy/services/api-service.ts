@@ -16,6 +16,7 @@ interface JobResponse {
   jobId: string;
   status: string;
   liftType?: string;
+  thumbnailUrl?: string | null;
 }
 
 async function authFetch(path: string, init: RequestInit = {}) {
@@ -191,6 +192,7 @@ export async function getJobStatus(jobId: string): Promise<JobResponse> {
       jobId: data.jobId,
       status: data.status,
       liftType: data.liftType,
+      thumbnailUrl: data.thumbnailUrl ?? null,
     };
   } catch (error) {
     console.error('Error getting job status:', error);
@@ -198,7 +200,7 @@ export async function getJobStatus(jobId: string): Promise<JobResponse> {
   }
 }
 
-export type JobResultsUrlName = "meta" | "landmarks" | "summary" | "viz";
+export type JobResultsUrlName = "meta" | "landmarks" | "summary" | "viz" | "thumbnail";
 
 export interface JobResultsResponse {
   jobId: string;
@@ -245,8 +247,8 @@ export async function fetchUserJobs(): Promise<LocalJob[]> {
       resultLandmarksKey: job.resultLandmarksKey || undefined,
       resultSummaryKey: job.resultSummaryKey || undefined,
       resultVizKey: job.resultVizKey || undefined,
-      // Preview data will be populated from local storage or generated later
-      preview: undefined,
+      resultThumbnailKey: job.resultThumbnailKey || undefined,
+      thumbnailUrl: job.thumbnailUrl ?? null,
     }));
 
     console.log('[API] Fetched', localJobs.length, 'jobs from backend');
@@ -257,19 +259,12 @@ export async function fetchUserJobs(): Promise<LocalJob[]> {
   }
 }
 
+export type LocalJobStatus = "CREATED" | "UPLOADED" | "PROCESSING" | "DONE" | "ERROR";
+
 /**
  * LocalJob represents a lift analysis job stored locally on the device
  * This allows us to track jobs across app sessions and display them in the gallery
  */
-export interface LocalJobPreview {
-  thumbnailBase64?: string;  // Base64-encoded first frame from viz.mp4
-  durationSec?: number;      // Video duration in seconds
-  framesWithPose?: number;   // Number of frames with detected pose
-  error?: string;            // Error message if preview generation failed
-}
-
-export type LocalJobStatus = "CREATED" | "UPLOADED" | "PROCESSING" | "DONE" | "ERROR";
-
 export interface LocalJob {
   jobId: string;
   userId?: string;            // Optional user sub for debugging
@@ -283,8 +278,9 @@ export interface LocalJob {
   resultLandmarksKey?: string;
   resultSummaryKey?: string;
   resultVizKey?: string;
+  resultThumbnailKey?: string;
 
-  // Preview data for gallery display
-  preview?: LocalJobPreview;
+  // Presigned thumbnail URL from the backend (available from PROCESSING onward)
+  thumbnailUrl?: string | null;
 }
 
