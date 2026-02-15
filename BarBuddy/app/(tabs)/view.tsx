@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -8,6 +8,7 @@ import {
   Image,
   ActivityIndicator 
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -19,10 +20,17 @@ import { LocalJob, LocalJobStatus } from '@/services/api-service';
 
 export default function ViewScreen() {
   const insets = useSafeAreaInsets();
-  const { jobs, refreshJobs, isLoading } = useJobs();
+  const { jobs, refreshJobs, syncWithBackend, isLoading } = useJobs();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedJob, setSelectedJob] = useState<LocalJob | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+
+  // Silent background sync when tab comes into focus (no loading UI)
+  useFocusEffect(
+    useCallback(() => {
+      syncWithBackend();
+    }, [syncWithBackend])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -88,7 +96,7 @@ export default function ViewScreen() {
   };
 
   const renderJobCard = (job: LocalJob) => {
-    const hasPreview = job.preview?.thumbnailBase64 && !job.preview?.error;
+    const hasThumbnail = !!job.thumbnailUrl;
     const isCompleted = job.status === 'DONE';
 
     return (
@@ -99,11 +107,11 @@ export default function ViewScreen() {
         onPress={() => handleJobPress(job)}
         disabled={!isCompleted}
       >
-        {/* Preview Image or Placeholder */}
+        {/* Thumbnail Image or Placeholder */}
         <View style={styles.previewContainer}>
-          {hasPreview && job.preview?.thumbnailBase64 ? (
+          {hasThumbnail ? (
             <Image 
-              source={{ uri: job.preview.thumbnailBase64 }} 
+              source={{ uri: job.thumbnailUrl! }} 
               style={styles.previewImage}
               resizeMode="cover"
             />
@@ -147,18 +155,6 @@ export default function ViewScreen() {
               )}
             </View>
           </View>
-
-          {job.preview?.durationSec && (
-            <ThemedText style={styles.jobMeta}>
-              Duration: {job.preview.durationSec}s
-            </ThemedText>
-          )}
-
-          {job.preview?.error && (
-            <ThemedText style={styles.errorText}>
-              Preview unavailable
-            </ThemedText>
-          )}
         </View>
       </TouchableOpacity>
     );

@@ -115,18 +115,14 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Fetch jobs from backend
       const backendJobs = await fetchUserJobs();
 
-      // Merge: backend jobs overwrite local by jobId, but preserve local preview data
+      // Merge: backend jobs are the source of truth, including thumbnailUrl
       setJobs((prevJobs) => {
         const merged: LocalJob[] = [];
         const backendJobIds = new Set(backendJobs.map(j => j.jobId));
 
-        // Add all backend jobs, preserving local previews if available
+        // Add all backend jobs (thumbnailUrl comes from the API now)
         for (const backendJob of backendJobs) {
-          const localJob = prevJobs.find(j => j.jobId === backendJob.jobId);
-          merged.push({
-            ...backendJob,
-            preview: localJob?.preview, // Preserve local preview data
-          });
+          merged.push(backendJob);
         }
 
         // Add local jobs that are not yet on backend (CREATED/UPLOADED status)
@@ -205,11 +201,11 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return jobs.find((j) => j.jobId === jobId);
   }, [jobs]);
 
-  // Manually refresh jobs from storage (for swipe-to-refresh)
+  // Manually refresh jobs (syncs with backend API)
   const refreshJobs = useCallback(async () => {
     console.log('[Jobs] Manual refresh triggered');
-    await loadJobs(userId);
-  }, [loadJobs, userId]);
+    await syncWithBackend();
+  }, [syncWithBackend]);
 
   // Computed stats
   const totalJobs = jobs.length;

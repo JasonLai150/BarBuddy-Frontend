@@ -1,29 +1,38 @@
 import { useEffect, useRef } from 'react';
 import { useJobs } from '@/contexts/JobContext';
 import { getJobStatus, getJobResults, LocalJob } from '@/services/api-service';
-import { generateVideoPreview } from '@/utils/video-utils';
 
 const POLLING_INTERVAL = 10000; // 10 seconds
 
 /**
  * Hook to automatically poll incomplete jobs in the background
  * Runs every 10 seconds and checks status of jobs that are not DONE or ERROR
- * When a job completes, fetches results and generates preview
+ * When a job completes, fetches results and stores S3 keys
  */
 export function useJobPolling() {
   const { jobs, isSyncing, updateJob } = useJobs();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Use refs to avoid tearing down the interval on every state change
+  const jobsRef = useRef(jobs);
+  const isSyncingRef = useRef(isSyncing);
+  const updateJobRef = useRef(updateJob);
+
+  // Keep refs in sync
+  useEffect(() => { jobsRef.current = jobs; }, [jobs]);
+  useEffect(() => { isSyncingRef.current = isSyncing; }, [isSyncing]);
+  useEffect(() => { updateJobRef.current = updateJob; }, [updateJob]);
+
   useEffect(() => {
     const pollJobs = async () => {
       // Skip polling if syncing with backend to avoid race conditions
-      if (isSyncing) {
+      if (isSyncingRef.current) {
         console.log('[JobPolling] Skipping polling, backend sync in progress');
         return;
       }
 
       // Find jobs that need polling (not DONE or ERROR)
-      const incompleteJobs = jobs.filter(
+      const incompleteJobs = jobsRef.current.filter(
         (job) => job.status !== 'DONE' && job.status !== 'ERROR'
       );
 
@@ -39,48 +48,53 @@ export function useJobPolling() {
           const statusResponse = await getJobStatus(job.jobId);
           console.log('[JobPolling] Job', job.jobId, 'status:', statusResponse.status);
 
-          // Update status if it changed
+          // Update status and thumbnailUrl if status changed
           if (statusResponse.status !== job.status) {
-            await updateJob(job.jobId, { 
-              status: statusResponse.status as LocalJob['status'] 
-            });
+            const statusUpdates: Partial<LocalJob> = {
+              status: statusResponse.status as LocalJob['status'],
+              thumbnailUrl: statusResponse.thumbnailUrl,
+            };
 
-            // If job is now DONE, fetch results and generate preview
+            await updateJobRef.current(job.jobId, statusUpdates);
+
+            // If job is now DONE, fetch results to store stable S3 keys
             if (statusResponse.status === 'DONE') {
               console.log('[JobPolling] Job completed, fetching results...');
-              await fetchJobResultsAndPreview(job.jobId);
+              await fetchJobResults(job.jobId);
             }
+          } else if (statusResponse.thumbnailUrl && !job.thumbnailUrl) {
+            // Status didn't change but thumbnailUrl became available
+            await updateJobRef.current(job.jobId, {
+              thumbnailUrl: statusResponse.thumbnailUrl,
+            });
           }
         } catch (error) {
           console.error('[JobPolling] Error polling job', job.jobId, ':', error);
-          // Mark as ERROR if polling fails repeatedly
-          // You might want to add retry logic here
         }
       }
     };
 
-    // Start polling interval
+    // Start polling interval (stable — no teardown on state changes)
     intervalRef.current = setInterval(pollJobs, POLLING_INTERVAL);
     console.log('[JobPolling] Started polling interval');
 
     // Poll immediately on mount
     pollJobs();
 
-    // Cleanup interval on unmount
+    // Cleanup interval only on unmount
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         console.log('[JobPolling] Stopped polling interval');
       }
     };
-  }, [jobs, isSyncing, updateJob]);
+  }, []); // Empty deps — interval runs once, reads current values via refs
 
   /**
-   * Fetch job results and generate preview when job completes
+   * Fetch job results when job completes to store stable S3 keys
    */
-  const fetchJobResultsAndPreview = async (jobId: string) => {
+  const fetchJobResults = async (jobId: string) => {
     try {
-      // Fetch results to get stable S3 keys
       const results = await getJobResults(jobId);
       console.log('[JobPolling] Fetched results for job', jobId);
 
@@ -103,27 +117,13 @@ export function useJobPolling() {
           case 'viz':
             updates.resultVizKey = urlObj.key;
             break;
+          case 'thumbnail':
+            updates.resultThumbnailKey = urlObj.key;
+            break;
         }
       });
 
-      // Update job with stable keys first
       await updateJob(jobId, updates);
-
-      // Generate preview in the background (non-blocking)
-      const vizUrl = results.urls.find((u) => u.name === 'viz')?.url;
-      if (vizUrl) {
-        console.log('[JobPolling] Found viz URL for job', jobId);
-        console.log('[JobPolling] Viz URL:', vizUrl.substring(0, 100) + '...');
-        console.log('[JobPolling] Starting preview generation...');
-        generateVideoPreview(vizUrl, jobId, updateJob).catch((error) => {
-          console.error('[JobPolling] Error generating preview:', error);
-          console.error('[JobPolling] Error stack:', error instanceof Error ? error.stack : 'No stack');
-          // Preview error is already stored in updateJob callback
-        });
-      } else {
-        console.warn('[JobPolling] No viz URL found in results for job', jobId);
-        console.log('[JobPolling] Available URLs:', results.urls.map(u => u.name).join(', '));
-      }
     } catch (error) {
       console.error('[JobPolling] Error fetching results for job', jobId, ':', error);
       throw error;
