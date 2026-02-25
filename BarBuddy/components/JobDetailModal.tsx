@@ -12,6 +12,7 @@ import { Video, ResizeMode } from 'expo-av';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { WireframeViewer } from '@/components/WireframeViewer';
 import { BarBuddyColors } from '@/constants/theme';
 import { LocalJob, getJobResults } from '@/services/api-service';
 
@@ -135,13 +136,9 @@ export function JobDetailModal({ visible, job, onClose }: JobDetailModalProps) {
         );
 
       case 'wireframe':
-        return (
-          <View style={styles.centerContainer}>
-            <IconSymbol name="figure.stand" size={64} color={BarBuddyColors.textSecondary} />
-            <ThemedText style={styles.emptyTitle}>Wireframe View</ThemedText>
-            <ThemedText style={styles.emptyText}>Coming soon</ThemedText>
-          </View>
-        );
+        return job ? (
+          <WireframeViewer job={job} />
+        ) : null;
 
       case 'barpath':
         return (
